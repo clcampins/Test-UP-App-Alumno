@@ -15,7 +15,7 @@ use CarreraRepo;
 my $cgi = CGI->new;
 
 #Validar método HTTP
-my method = $ENV{'REQUEST_METHOD'} // 'GET';
+my $method = $ENV{'REQUEST_METHOD'} // 'GET';
 
 if ($method ne 'GET') {
     my $payload = encode_json({ error => 'Method Not Allowed' });
@@ -24,7 +24,7 @@ if ($method ne 'GET') {
         -type => 'application/json; charset=UTF-8', 
         -status => '405 Method Not Allowed',
     );
-    print payload;
+    print $payload;
     exit;
 }
 
@@ -39,6 +39,7 @@ eval {
 
     # Preparar la respuesta en JSON
     $response_json = encode_json({ carreras => $carreras_ref });
+    1;
 } or do {
     my $payload = encode_json({ error => 'Internal Server Error' });
 
@@ -46,7 +47,7 @@ eval {
         -type => 'application/json; charset=UTF-8', 
         -status => '500 Internal Server Error',
     );
-    print payload;
+    print $payload;
     exit;
 };
 
