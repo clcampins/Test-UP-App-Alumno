@@ -18,7 +18,7 @@
                         <img src="../public/assets/images/logo.png" class="rounded float-start" height="100" alt="">
                     </div>
                     <div class="" id="">
-                        <button class="btn btn-outline-success" type="button">Admin</button>
+                        <a class="btn btn-outline-success" href="../admin/index.html" >Admin</a>
                     </div>
                 </div>
             </nav>
@@ -53,9 +53,9 @@
                         </div>
                         <div class="mb-3">
                             <label for="" class="form-label">Carrera</label>
-                            <select class="form-select" aria-label="Selecciona una carrera" v-model="form.carrera_id" required>
-                                <option selected>Selecciona una carrera</option>
-                                <option v-for="carrera in carreras" :key="carrera.id" :value="carrera.id">{{ carrera.name }}</option>
+                            <select class="form-select" aria-label="Selecciona una carrera" v-model.number="form.carrera_id" required>
+                                <option value="" disabled>Selecciona una carrera</option>
+                                <option v-for="carrera in carreras" :key="carrera.id" :value="carrera.id">{{ carrera.nombre }}</option>
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary">Inscribirse</button>
@@ -81,7 +81,7 @@
                             email: '',
                             telefono: '',
                             nacionalidad: '',
-                            carrera_id: ''
+                            carrera_id: null
                         },
                         message: {
                             text: '',
@@ -89,19 +89,24 @@
                         }
                     };
                 },
-                mounted() {
-                    this.carreras = [
-                        { id: 1, name: 'Ingeniería en Inteligencia Artificial' },
-                        { id: 2, name: 'Informática' },
-                        { id: 3, name: 'Ciberseguridad' },
-                        { id: 4, name: 'Telecomunicaciones' },
-                        { id: 5, name: 'Electrónica' },
-                        { id: 6, name: 'Arquitectura' },
-                        { id: 7, name: 'Administración' }
-                    ];
+                async mounted() {
+                    try {
+                        const res = await fetch('/api/carreras.pl', {
+                            headers: { 'Accept': 'application/json' } 
+                        });
+                        if (!res.ok) throw new Error('No se pudieron cargar las carreras');
+
+                        const data = await res.json();
+                        this.carreras = data.carreras || [];
+                    } catch (e) {
+                        this.message = { 
+                            text: 'Error cargando carreras. Intenta nuevamente.', 
+                            type: 'error' 
+                        };
+                    }
                 },
                 methods: {
-                    submitForm() {
+                    async submitForm() {
                         this.message.text = '';
                         this.message.type = '';
                         
@@ -122,29 +127,40 @@
                             };
                             return;
                         }
-                        // Simulación de envío de formulario exitoso
-                        this.message = {
-                            text: 'Inscripción realizada con éxito.',
-                            type: 'success'
-                        }
+                        try {
+                            const payload = { ...this.form, carrera_id: Number(this.form.carrera_id) };
+                            const res = await fetch('/api/inscripciones.pl', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                body: JSON.stringify(payload),
+                            });
 
-                        //Simulación de error alumno repetido
-                        if (this.form.email === 'inscrito@gmail.com') {
-                            this.message = {
-                                text: 'El alumno ya está inscrito.',
-                                type: 'error'
-                            };
+                            if (res.status === 201) {
+                                this.message = { text: 'Inscripción realizada con éxito.', type: 'success' };
+                                
+                                // Reset formulario
+                                this.form.nombre = '';
+                                this.form.email = '';
+                                this.form.telefono = '';
+                                this.form.nacionalidad = '';
+                                this.form.carrera_id = '';
+                                return;
+                            }
+
+                            if(res.status === 409) {
+                                this.message = { text: 'El alumno ya esta inscrito | email duplicado.', type: 'error' };
+                                return;
+                            }
+                            if(res.status === 400) {
+                                const error = await res.json().catch(() => null);
+                                this.message = { text: error?.error ? `Error: ${error.error}` : 'Datos inválidos.', type: 'error' };
+                                return;
+                            }
+                            this.message = { text: 'Ocurrió un error durante el proceso de inscripción.', type: 'error' };
+                        } catch (e) {
+                            this.message = { text: 'Error enviando la inscripción. Intenta nuevamente.', type: 'error' };
                             return;
                         }
-
-                        // Resetear el formulario
-                        this.form = {
-                            nombre: '',
-                            email: '',
-                            telefono: '',
-                            nacionalidad: '',
-                            carrera_id: ''
-                        };
                     }
                 }
             }).mount('#app');

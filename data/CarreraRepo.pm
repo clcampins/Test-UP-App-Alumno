@@ -14,9 +14,11 @@ sub list {
         ORDER BY nombre
     };
 
+    # Ejecutar la consulta
     my $sth = $dbh->prepare($sql);
     $sth->execute();
 
+    # Array de carreras
     my @carreras;
 
     # Recorremos los resultados y los almacenamos en un array de hashes

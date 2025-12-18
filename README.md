@@ -155,4 +155,22 @@ psql -U postgres -d inscripcion_alumnos -f sql/schema.sql
     - 404 No existe
     - 500 Error
 
+## Endpoints del API
 
+### Obtener lista de carreras
+- Método: **GET** 
+- Endpoint: `/api/carreras.pl`
+- Respuesta: 
+```json 
+{
+    "carreras":[
+        {"id":7,"nombre":"Administración"},
+        {"nombre":"Arquitectura","id":6},
+        {"id":3,"nombre":"Ciberseguridad"},
+        {"id":5,"nombre":"Electrónica"},
+        {"id":2,"nombre":"Informática"},
+        {"nombre":"Ingeniería en Inteligencia Artificial","id":1},
+        {"id":4,"nombre":"Telecomunicaciones"}
+    ]
+} 
+```

@@ -10,14 +10,14 @@ use JSON;
 use FindBin;
 use lib "$FindBin::Bin/../data";
 use DB qw(get_dbh);
-use CarreraRepo;
+use AlumnoRepo;
 
 my $cgi = CGI->new;
 
-#Validar método HTTP
+# Obtener el método HTTP de la solicitud
 my $method = $ENV{'REQUEST_METHOD'} // 'GET';
-
-if ($method ne 'GET') {
+# Verificar que el método sea GET
+if($method ne 'GET') {
     print $cgi->header(
         -type => 'application/json; charset=UTF-8', 
         -status => '405 Method Not Allowed',
@@ -28,15 +28,16 @@ if ($method ne 'GET') {
 
 my $response_json;
 
+# Obtener la lista de alumnos desde la base de datos
 eval {
     # Obtener el manejador de la base de datos
     my $dbh = get_dbh();
 
-    # Obtener la lista de carreras
-    my $carreras_ref = CarreraRepo::list($dbh);
+    # Obtener la lista de alumnos
+    my $alumnos_ref = AlumnoRepo::list($dbh);
 
     # Preparar la respuesta en JSON
-    $response_json = encode_json({ carreras => $carreras_ref });
+    $response_json = encode_json({ alumnos => $alumnos_ref });
     1;
 } or do {
     print $cgi->header(
@@ -52,3 +53,4 @@ print $cgi->header(
     -status => '200 OK',
 );
 print $response_json;
+

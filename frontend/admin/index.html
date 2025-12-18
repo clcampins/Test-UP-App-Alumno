@@ -85,9 +85,9 @@
                         </div>
                         <div class="mb-3">
                             <label for="" class="form-label">Carrera</label>
-                            <select class="form-select" aria-label="Selecciona una carrera" v-model="form.carrera_id" required>
-                                <option selected>Selecciona una carrera</option>
-                                <option v-for="carrera in carreras" :key="carrera.id" :value="carrera.id">{{ carrera.name }}</option>
+                            <select class="form-select" aria-label="Selecciona una carrera" v-model.number="form.carrera_id" required>
+                                <option value="" disabled>Selecciona una carrera</option>
+                                <option v-for="carrera in carreras" :key="carrera.id" :value="carrera.id">{{ carrera.nombre }}</option>
                             </select>
                         </div>
                         <div class="d-flex justify-content-between"> 
@@ -121,37 +121,56 @@
                             email: '',
                             telefono: '',
                             nacionalidad: '',
-                            carrera_id: ''
+                            carrera_id: null
                         },
                         message: {
                             text: '',
                             type: ''
-                        }
+                        },
+                        messageTimeout: null
                     };
                 },
-                mounted() {
-                    this.carreras = [
-                        { id: 1, name: 'Ingeniería en Inteligencia Artificial' },
-                        { id: 2, name: 'Informática' },
-                        { id: 3, name: 'Ciberseguridad' },
-                        { id: 4, name: 'Telecomunicaciones' },
-                        { id: 5, name: 'Electrónica' },
-                        { id: 6, name: 'Arquitectura' },
-                        { id: 7, name: 'Administración' }
-                    ];
-                    this.alumnos = [
-                        {
-                            id: 1,
-                            nombre: 'Carlos',
-                            email: 'carlos@gmail.com',
-                            telefono: '12345678',
-                            nacionalidad: 'argentina',
-                            carrera_id: 1,
-                            carrera_nombre: 'Ingeniería en Inteligencia Artificial'
-                        }
-                    ];
+                async mounted() {
+                    await this.loadCarreras();
+                    await this.loadAlumnos();
                 },
                 methods: {
+                    async loadCarreras() {
+                        try {
+                            const res = await fetch('/api/carreras.pl', {
+                                headers: { 'Accept': 'application/json' } 
+                            });
+                            if (!res.ok) throw new Error('No se pudieron cargar las carreras');
+
+                            const data = await res.json();
+                            this.carreras = data.carreras || [];
+                        } catch (e) {
+                            this.message = { 
+                                text: 'Error cargando carreras. Intenta nuevamente.', 
+                                type: 'error' 
+                            };
+                        }
+                    },
+
+                    async loadAlumnos() {
+                        try {
+                            const res = await fetch('/api/alumnos.pl', {
+                                headers: {
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            if (!res.ok) {
+                                throw new Error('Error al cargar los alumnos');
+                            }
+                            const data = await res.json();
+                            this.alumnos = data.alumnos || [];
+                        } catch (error) {
+                            this.message = {
+                                text: 'Error al cargar los alumnos.',
+                                type: 'error'
+                            };
+                        }
+                    },
                     openCreateForm() {
                         this.resetForm();
                     },
@@ -161,7 +180,7 @@
                         this.form = { ...alumno };
                     },
 
-                    submitForm() {
+                    async submitForm() {
                         this.message.text = '';
                         this.message.type = '';
                         
@@ -183,36 +202,104 @@
                             return;
                         }
                         //Simulación de error alumno repetido
-                        if (this.form.email === this.alumnos.find(a => a.email === this.form.email && a.id !== this.editingId)?.email) {
-                            this.message = {
-                                text: 'El alumno ya está inscrito.',
-                                type: 'error'
-                            };
-                            return;
-                        }
+                        
+
                         if (this.isEditing) {
-                            const index = this.alumnos.findIndex(a => a.id === this.editingId);
-                            this.alumnos[index] = { 
-                                ...this.form, 
-                                carrera_nombre: this.carreras.find(c => c.id === this.form.carrera_id).name 
-                            };
-                            this.message = { text: 'Alumno actualizado.', type: 'success' };
-                        } else {
-                            this.alumnos.push({ 
-                                id: Date.now(), 
-                                ...this.form, 
-                                carrera_nombre: this.carreras.find(c => c.id === this.form.carrera_id).name 
+                            try {
+                                const payload = { id: this.editingId, ...this.form, carrera_id: Number(this.form.carrera_id) };
+
+                                // Actualizar alumno existente
+                                const res = await fetch('/api/alumnos_update.pl', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                    body: JSON.stringify(payload),
+                                });
+                                if (res.status === 200) {
+                                    this.message = { text: 'Alumno actualizado.', type: 'success' };
+                                    await this.loadAlumnos(); // refresca desde DB
+                                    this.resetForm();
+                                    return;
+                                }
+                                if (res.status === 404) {
+                                    this.message = { text: 'alumno no encontrado.', type: 'error' };
+                                    return;
+                                }
+                                if (res.status === 409) {
+                                    this.message = { text: 'El alumno ya está inscripto | email duplicado.', type: 'error' };
+                                    return;
+                                }
+
+                                const err = await res.json().catch(() => null);
+                                // err?.message es para el mensaje que responde el backend
+                                this.message = { text: err?.error || err?.message || 'No se pudo actualizar el alumno.', type: 'error' };
+                                return;
+                            } catch (e) {
+                                this.message = { text: 'Error de red actualizando el alumno.', type: 'error' };
+                                return;
+                            }
+                        }
+                        
+                        try {
+                            const payload = { ...this.form, carrera_id: Number(this.form.carrera_id) };
+
+                            // Crear nuevo alumno
+                            const res = await fetch('/api/inscripciones.pl', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                body: JSON.stringify(payload),
                             });
-                            this.message = { text: 'Alumno creado.', type: 'success' };
+
+                            if (res.status === 201) {
+                                this.message = { text: 'Alumno creado.', type: 'success' };
+                                await this.loadAlumnos(); // refresca desde DB
+                                this.resetForm();
+                                return;
+                            }
+
+                            if (res.status === 409) {
+                                this.message = { text: 'El alumno ya está inscripto (email duplicado).', type: 'error' };
+                                return;
+                            }
+
+                            if (res.status === 400) {
+                                const err = await res.json().catch(() => null);
+                                this.message = { text: err?.error ? `Error: ${err.error}` : 'Datos inválidos.', type: 'error' };
+                                return;
+                            }
+
+                            this.message = { text: 'No se pudo crear el alumno.', type: 'error' };
+                        } catch (e) {
+                            this.message = { text: 'Error de red creando el alumno.', type: 'error' };
                         }
                         this.resetForm();
                     },
 
-                    deleteAlumno(id) {
+                    async deleteAlumno(id) {
                         if (!confirm('¿Está seguro que desea eliminar el alumno?')) return;
 
-                        this.alumnos = this.alumnos.filter(a => a.id !== id);
-                        this.message = { text: 'Alumno eliminado.', type: 'success' };
+                        try {
+                            const res = await fetch('/api/alumnos_delete.pl', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                body: JSON.stringify({ id })
+                            });
+
+                            if (res.status === 204) {
+                                this.message = { text: 'Alumno eliminado.', type: 'success' };
+                                await this.loadAlumnos(); // refresca desde DB
+                                return;
+                            }
+
+                            if (res.status === 404) {
+                                this.message = { text: 'El alumno no existe o ya fue eliminado.', type: 'error' };
+                                return;
+                            }
+
+                            const err = await res.json().catch(() => null);
+                            this.message = { text: err?.error ? `Error: ${err.error}` : 'No se pudo eliminar.', type: 'error' };
+                        } catch (e) {
+                            this.message = { text: 'Error de red eliminando el alumno.', type: 'error' };
+                        }
                     },
                     resetForm() {
                         this.isEditing = false;
@@ -222,12 +309,12 @@
                             email: '',
                             telefono: '',
                             nacionalidad: '',
-                            carrera_id: ''
+                            carrera_id: null
                         };
                     },
                     getCarreraNombre() {
                         const carrera = this.carreras.find(c => c.id === this.form.carrera_id);
-                        return carrera ? carrera.name : '';
+                        return carrera ? carrera.nombre : '';
                     }
                 }
             }).mount('#app');

@@ -1,0 +1,8 @@
+AuthType Basic
+AuthName "Administración - Inscripción de Alumnos"
+AuthUserFile "C:/xampp/htdocs/test_up/Test-UP-App-Alumno/frontend/admin/.htpasswd"
+Require valid-user
+
+#Comando de user y password para windows:
+#cd C:\xampp\apache\bin
+#htpasswd.exe -b C:\xampp\htdocs\test_up\Test-UP-App-Alumno\frontend\admin\.htpasswd admin 1234
