@@ -2,17 +2,43 @@
 Test tecnico de la UP para el puesto de desarrollador fullstack
 
 ## Descripción del Proyecto
-La aplicación consiste en un ABM de alumnos para gestionar la inscripción a carreras universitarias.
+La aplicación consiste en un Sistema de inscripciones y ABM de alumnos para gestionar la inscripción a carreras universitarias.
+- Vistas:
     - **\public**: Contiene un formulario para que se inscriban los alumnos.
     - **\admin**: Contiene un ABM para gestionar a los alumnos y asignarle una carrera.
 
 ## Arquitectura
+- Actualización: Refactorice el proyecto implementando Arquitectura Limpia DDD de forma simplificada, separando responsabilidades, adicionando una capa de Servicios.
+
+### Capas
 ```
-/frontend/public          → HTML, CSS, JS (parte pública)
-/frontend/admin           → HTML, CSS, JS (parte privada)
-/backend         → Scripts Perl (controladores y lógica)
-/data            → Acceso a datos (módulos Perl para consultas)
-/sql             → Archivo schema.sql para crear la base
+Frontend (Vue.js)
+   ↓
+Controllers (CGI Perl)
+   ↓
+Services (Lógica de negocio)
+   ↓
+Repositories (Acceso a datos)
+   ↓
+PostgreSQL
+```
+
+### Estructura de carpetas
+
+```
+/frontend
+  /public          → HTML, CSS, JS (parte pública)
+  /admin           → HTML, CSS, JS (parte privada - ABM)
+
+/backend
+  /controllers     → Scripts Perl CGI (controladores)
+
+/lib
+  /Services        → Servicios (lógica de negocio)
+  /Data            → Acceso a datos (repositorios y DB)
+
+/sql
+  schema.sql       → Script de creación de la base de datos
 ```
 
 ## Base de Datos
@@ -48,15 +74,27 @@ psql -U postgres -d inscripcion_alumnos -f sql/schema.sql
 ```
 
 ## Principios aplicados:
-- Separación de responsabilidades
-- Código modular
+- Separación de responsabilidades (Controladores | Servicios | Repositorios)
+- Inyección de dependencias manual
+- Código modular y desacoplado
 - Validaciones en backend y frontend
+- Mejora de seguridad en las consultas de repositorios 
 - Diseño responsive
+- Respuestas HTTP con JSON estandarizado
+
+## Seguridad y Validaciones
+
+- Validaciones en frontend y backend.
+- Emails únicos verificados a nivel:
+  - lógica de negocio
+  - constraint de base de datos.
+- Uso de **prepared statements** para evitar errores de quotes e inyección SQL.
+- Parte privada protegida mediante `.htaccess`.
 
 ## Definición de Endpoints
 ### Parte pública
 - Lista de carreras en el form:
-    **GET** /api/carreras
+    **GET** /api/carreras.pl
     Respuesta JSON:
     - 200 Ok:
     [
@@ -66,7 +104,7 @@ psql -U postgres -d inscripcion_alumnos -f sql/schema.sql
     ]
     - 500 Error
 - Submit de inscripción de alumno:
-    **POST** /api/inscripciones
+    **POST** /api/inscripciones.pl
     Body JSON:
     {
         "nombre": "Carlos",
@@ -83,41 +121,26 @@ psql -U postgres -d inscripcion_alumnos -f sql/schema.sql
 
 ### Parte privada
 - Lista de alumnos:
-    **GET** /api/alumnos
+    **GET** /api/alumnos.pl
     Respuestas:
     - 200 todo ok:
     [
         {
-            "id": 10,
-            "nombre": "Carlos",
-            "email": "carlos@gmail.com",
-            "telefono": "12345678",
-            "nacionalidad": "argentina",
-            "carrera_id": 2,
-            "carrera_nombre": "Informática"
+            "alumnos": [
+                {
+                "id": 10,
+                "nombre": "Carlos",
+                "email": "carlos@gmail.com",
+                "telefono": "12345678",
+                "nacionalidad": "Argentina",
+                "carrera_id": 2,
+                "carrera_nombre": "Informática"
+                }
+            ]
         }
     ]
-- Obtener alumno por id
-    **GET** /api/alumnos/:id
-    Respuestas:
-    - 200 Todo ok:
-    [
-        {
-            "id": 10,
-            "nombre": "Carlos",
-            "email": "carlos@gmail.com",
-            "telefono": "12345678",
-            "nacionalidad": "argentina",
-            "carrera_id": 2,
-            "carrera_nombre": "Informática"
-        }
-    ]
-    - 404:
-    {
-        "error": "Alumno no encontrado"
-    }
 - Crear alumno
-    **POST** /api/alumnos
+    **POST** /api/alumnos.pl
     Body JSON:
     {
         "nombre": "Carlos",
@@ -132,22 +155,26 @@ psql -U postgres -d inscripcion_alumnos -f sql/schema.sql
     - 400 Campo faltante
     - 500 Error
 - Modificar alumno
-    **PUT** /api/alumnos/:id
+    **POST** /api/alumnos.pl/:id
     Body JSON:
     {
+        "id": 10,
         "nombre": "Carlos",
         "email": "carlos@gmail.com",
         "telefono": "12345678",
         "nacionalidad": "argentina",
         "carrera_id": 1
     }
-    Validación del email, no permite uno repetido.
+    Reglas:
+    - id obligatorio.
+    - Validación del email, no permite uno repetido.
+    - Todos los campos son requeridos.
     Respuestas:
     - 200 Todo ok
-    - 404 Datos invalidos
-    - 409 Mensaje "El alumno ya está inscripto."
-    - 400 Campo faltante
-    - 500 Error
+    - 404 Not Found — Alumno no encontrado
+    - 409 Conflict — Email ya existente
+    - 400 Bad Request — Datos inválidos o faltantes
+    - 500 Internal Server Error
 - Eliminar alumno
     **DELETE** /api/alumnos/:id
     Respuestas:
@@ -173,4 +200,32 @@ psql -U postgres -d inscripcion_alumnos -f sql/schema.sql
         {"id":4,"nombre":"Telecomunicaciones"}
     ]
 } 
+```
+
+## Pruebas rapidas Curl (CMD)
+```
+### Listar Alumnos
+C:\Users\Usuario>curl -i -X GET http://localhost/Modificar/backend/controllers/alumnos.pl
+
+### Modificar Alumno
+C:\Users\Usuario>curl -i -X POST http://localhost/Modificar/backend/controllers/alumnos.pl -H "Content-Type: application/json" -d "{\"id\":1,\"nombre\":\"Carlos\",\"email\":\"carlos@test.com\",\"telefono\":\"12345678\",\"nacionalidad\":\"Argentina\",\"carrera_id\":1}"
+
+### Eliminar Alumno
+C:\Users\Usuario>curl -i -X DELETE http://localhost/Modificar/backend/controllers/alumnos.pl -H "Content-Type: application/json" -d "{\"id\":1}"
+
+```
+
+## Configuración de Apache para CGI Perl
+```
+# habilitar CGI en /api apuntando a la carpeta backend
+ScriptAlias /api/ "C:/xampp/htdocs/test_up/Test-UP-App-Alumno/backend/controllers/"
+
+<Directory "C:/xampp/htdocs/test_up/Test-UP-App-Alumno/backend/">
+    AllowOverride All
+    Options +ExecCGI
+    AddHandler cgi-script .pl
+    Require all granted
+</Directory>
+
+ScriptInterpreterSource Registry
 ```

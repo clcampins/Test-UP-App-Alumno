@@ -209,7 +209,7 @@
                                 const payload = { id: this.editingId, ...this.form, carrera_id: Number(this.form.carrera_id) };
 
                                 // Actualizar alumno existente
-                                const res = await fetch('/api/alumnos_update.pl', {
+                                const res = await fetch('/api/alumnos.pl', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                                     body: JSON.stringify(payload),
@@ -278,8 +278,8 @@
                         if (!confirm('¿Está seguro que desea eliminar el alumno?')) return;
 
                         try {
-                            const res = await fetch('/api/alumnos_delete.pl', {
-                                method: 'POST',
+                            const res = await fetch('/api/alumnos.pl', {
+                                method: 'DELETE',
                                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                                 body: JSON.stringify({ id })
                             });

@@ -8,13 +8,19 @@ sub new {
     return bless { alumno_repo => $repo }, $class;
 }
 
+# Función para listar todos los alumnos
+sub listar_alumnos {
+    my ($self) = @_;
+    return $self->{alumno_repo}->list();
+}
+
 # Función para inscribir un nuevo alumno
 sub inscribir_alumno {
     my ($self, $data) = @_;
 
     # Verificar si el email ya existe
     if ($self->{alumno_repo}->email_exist($data->{email})) {
-        die { code => 400, message => 'El email ya está registrado' };
+        die { code => 409, message => 'El email ya está registrado' };
     }
 
     # Crear el nuevo alumno
@@ -23,18 +29,12 @@ sub inscribir_alumno {
     return $id;
 }
 
-# Función para listar todos los alumnos
-sub listar_alumnos {
-    my ($self) = @_;
-    return $self->{alumno_repo}->list();
-}
-
 sub actualizar_alumno {
     my ($self, $id, $data) = @_;
 
     # Verificar si el email ya existe excluyendo el ID actual
     if ($self->{alumno_repo}->email_exist_excluding_id($data->{email}, $id)) {
-        die { code => 400, message => 'El email ya está registrado por otro alumno' };
+        die { code => 409, message => 'El email ya está registrado por otro alumno' };
     }
 
     # Actualizar el alumno

@@ -58,6 +58,7 @@ eval {
     my $alumno_repo = Data::AlumnoRepo->new($dbh);
     my $alumno_service = Services::AlumnoService->new($alumno_repo);
 
+    # Inscribir el nuevo alumno
     my $id = $alumno_service->inscribir_alumno($data);
     enviar_respuesta('201 Created', { id => $id });
     1;
