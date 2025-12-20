@@ -1,5 +1,5 @@
 # Test-UP-App-Alumno
-Test tecnico de la UP para el puesto de desarrollador fullstack
+Test técnico de la UP para el puesto de desarrollador fullstack
 
 ## Descripción del Proyecto
 La aplicación consiste en un Sistema de inscripciones y ABM de alumnos para gestionar la inscripción a carreras universitarias.
@@ -202,7 +202,7 @@ psql -U postgres -d inscripcion_alumnos -f sql/schema.sql
 } 
 ```
 
-## Pruebas rapidas Curl (CMD)
+## Pruebas rápidas Curl (CMD)
 ```
 ### Listar Alumnos
 C:\Users\Usuario>curl -i -X GET http://localhost/Modificar/backend/controllers/alumnos.pl
