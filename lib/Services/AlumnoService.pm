@@ -2,6 +2,7 @@ package Services::AlumnoService;
 
 use strict;
 use warnings;
+use utf8;
 
 sub new {
     my ($class, $repo) = @_;
@@ -23,6 +24,21 @@ sub inscribir_alumno {
         die { code => 409, message => 'El email ya está registrado' };
     }
 
+    # Verificar si el email es diferente de blanco
+    if ($data->{email} =~ /^\s*$/) {
+        die { code => 400, message => 'El email no puede estar vacío' };
+    }
+
+    # Verificar formato correcto de email
+    if ($data->{email} !~ /^[^\s@]+@[^\s@]+\.[^\s@]+$/) {
+        die { code => 400, message => 'El formato del email es incorrecto' };
+    }
+
+    # Verificar formato correcto de telefono
+    if ($data->{telefono} !~ /^\+?\d{7,15}$/) {
+        die { code => 400, message => 'El formato del teléfono es incorrecto' };
+    }
+
     # Crear el nuevo alumno
     my $id = $self->{alumno_repo}->create($data);
     die { code => 500, message => 'Error al crear el alumno' } unless $id;
@@ -35,6 +51,21 @@ sub actualizar_alumno {
     # Verificar si el email ya existe excluyendo el ID actual
     if ($self->{alumno_repo}->email_exist_excluding_id($data->{email}, $id)) {
         die { code => 409, message => 'El email ya está registrado por otro alumno' };
+    }
+
+    # Verificar si el email es diferente de blanco
+    if ($data->{email} =~ /^\s*$/) {
+        die { code => 400, message => 'El email no puede estar vacío' };
+    }
+
+    # Verificar formato correcto de email
+    if ($data->{email} !~ /^[^\s@]+@[^\s@]+\.[^\s@]+$/) {
+        die { code => 400, message => 'El formato del email es incorrecto' };
+    }
+
+    # Verificar formato correcto de telefono
+    if ($data->{telefono} !~ /^\+?\d{7,15}$/) {
+        die { code => 400, message => 'El formato del teléfono es incorrecto' };
     }
 
     # Actualizar el alumno

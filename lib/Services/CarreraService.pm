@@ -2,6 +2,7 @@ package Services::CarreraService;
 
 use strict;
 use warnings;
+use utf8;
 
 # Constructor de la clase CarreraService
 sub new {
