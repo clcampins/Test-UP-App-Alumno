@@ -1,11 +1,17 @@
-package CarreraRepo;
+package Data::CarreraRepo;
 
 use strict;
 use warnings;
 
+# Constructor de la clase CarreraRepo
+sub new {
+    my ($class, $dbh) = @_;
+    return bless { dbh => $dbh }, $class;
+}
+
 # Función para obtener la lista de carreras
 sub list {
-    my ($dbh) = @_;
+    my ($self) = @_;
 
     # Consulta SQL para obtener las carreras
     my $sql = q{
@@ -15,7 +21,7 @@ sub list {
     };
 
     # Ejecutar la consulta
-    my $sth = $dbh->prepare($sql);
+    my $sth = $self->{dbh}->prepare($sql);
     $sth->execute();
 
     # Array de carreras

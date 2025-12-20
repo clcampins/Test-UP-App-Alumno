@@ -1,12 +1,16 @@
-package AlumnoRepo;
+package Data::AlumnoRepo;
 
 use strict;
 use warnings;
 
+sub new {
+    my ($class, $dbh) = @_;
+    return bless { dbh => $dbh }, $class;
+}
+
 # Función para verificar si un email ya existe en la base de datos
 sub email_exist {
-    my ($dbh, $email) = @_;
-
+    my ($self, $email) = @_;
     # Consulta SQL para verificar la existencia del email que solo devuelve 1 si existe para optimizar
     my $sql = q{
         SELECT 1
@@ -16,15 +20,15 @@ sub email_exist {
     };
 
     # Ejecutar la consulta que verifica la existencia del email
-    my $sth = $dbh->prepare($sql);
+    # Inyectamos el email en la consulta preparada
+    my $sth = $self->{dbh}->prepare($sql);
     $sth->execute($email);
 
-    my ($existe) = $sth->fetchrow_array();
-    return $existe ? 1 : 0;
+    return $sth->fetchrow_array ? 1 : 0;
 }
 
 sub email_exist_excluding_id {
-    my ($dbh, $email, $id) = @_;
+    my ($self, $email, $id) = @_;
 
     # Consulta SQL para verificar la existencia del email excluyendo un ID específico
     my $sql = q{
@@ -36,16 +40,15 @@ sub email_exist_excluding_id {
     };
 
     # Ejecutar la consulta que verifica la existencia del email excluyendo el ID
-    my $sth = $dbh->prepare($sql);
+    my $sth = $self->{dbh}->prepare($sql);
     $sth->execute($email, $id);
 
-    my ($existe) = $sth->fetchrow_array();
-    return $existe ? 1 : 0;
+    return $sth->fetchrow_array ? 1 : 0;
 }
 
 # Función para crear un nuevo alumno
 sub create {
-    my ($dbh, $data) = @_;
+    my ($self, $data) = @_;
 
     # Consulta SQL para insertar un nuevo alumno
     my $sql = q{
@@ -55,7 +58,8 @@ sub create {
     };
 
     # Ejecutar la consulta de inserción
-    my $sth = $dbh->prepare($sql);
+    # Inyectamos los datos en la consulta preparada
+    my $sth = $self->{dbh}->prepare($sql);
     $sth->execute(
         $data->{nombre},
         $data->{email},
@@ -69,11 +73,11 @@ sub create {
 }
 # Función para obtener la lista de todos los alumnos
 sub list {
-    my ($dbh) = @_;
+    my ($self) = @_;
 
     # Consulta SQL para obtener todos los alumnos
     my $sql = q{
-        SElECT
+        SELECT
             a.id,
             a.nombre,
             a.email,
@@ -87,16 +91,14 @@ sub list {
     };
 
     # Ejecutar la consulta
-    my $sth = $dbh->prepare($sql);
+    my $sth = $self->{dbh}->prepare($sql);
     $sth->execute();
 
-    my $rows = $sth->fetchall_arrayref({});
-    return $rows || []; # Retorna un array vacío si no hay resultados
+    return $sth->fetchall_arrayref({}) || []; # Retorna un array vacío si no hay resultados
 }
 # Función para eliminar un alumno por su ID
 sub delete {
-    my ($dbh, $id) = @_;
-
+    my ($self, $id) = @_;
     # Consulta SQL para eliminar un alumno por su ID
     my $sql = q{
         DELETE FROM alumno
@@ -104,7 +106,7 @@ sub delete {
     };
 
     # Ejecutar la consulta de eliminación
-    my $sth = $dbh->prepare($sql);
+    my $sth = $self->{dbh}->prepare($sql);
     $sth->execute($id);
 
     my $rows = $sth->rows;
@@ -112,7 +114,7 @@ sub delete {
 }
 #Función para actualizar un alumno por su ID
 sub update {
-    my ($dbh, $id, $data) = @_;
+    my ($self, $id, $data) = @_;
 
     # Consulta SQL para actualizar un alumno por su ID
     my $sql = q{
@@ -126,7 +128,7 @@ sub update {
     };
 
     # Ejecutar la consulta de actualización
-    my $sth = $dbh->prepare($sql);
+    my $sth = $self->{dbh}->prepare($sql);
     $sth->execute(
         $data->{nombre},
         $data->{email},

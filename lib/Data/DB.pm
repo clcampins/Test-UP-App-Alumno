@@ -1,4 +1,4 @@
-package DB;
+package Data::DB;
 
 use strict;
 use warnings;
